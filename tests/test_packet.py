@@ -18,6 +18,17 @@ class PacketTest(unittest.TestCase):
         self.assertTrue(all(0<=row[key]<=10 for row in doc['scores'] for key in ('aroma','crisp')))
         self.assertTrue({row['id'] for row in doc['labels']} <= {row['id'] for row in doc['label_requests']})
 
+    def test_panel_and_reference_records_have_distinct_coverage(self):
+        packet = read_packet(Path("资料/演练.json"))
+        sessions = {}
+        for row in packet['blind_map']:
+            sessions.setdefault(row['session'], set()).add(row['sample'])
+        self.assertGreaterEqual(sum({'AZ', 'AW', 'K2', 'K3'} <= samples for samples in sessions.values()), 2)
+        panel = {session: {row['rater'] for row in packet['scores'] if row['session'] == session}
+                 for session in sessions}
+        self.assertTrue(panel['R3'] & panel['R6'])
+        self.assertTrue(panel['R3'] - panel['R6'])
+
     def test_reject_wrong_container(self):
         with TemporaryDirectory() as folder:
             packet = Path(folder) / "unexpected.json"
